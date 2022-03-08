@@ -10,13 +10,22 @@ use std::ops::Not;
 
 #[derive(Debug)]
 struct State {
-    checkers: Bitboard,             // 王手をかけている駒の位置
-    pinned: [Bitboard; Color::NUM], // 飛び駒から玉を守っている駒の位置
+    checkers: Bitboard,                     // 王手をかけている駒の位置
+    checkables: [Bitboard; PieceType::NUM], // 各駒が次の手で王手可能になる位置
+    pinned: [Bitboard; Color::NUM],         // 飛び駒から玉を守っている駒の位置
 }
 
 impl State {
-    fn new(checkers: Bitboard, pinned: [Bitboard; Color::NUM]) -> Self {
-        Self { checkers, pinned }
+    fn new(
+        checkers: Bitboard,
+        checkables: [Bitboard; PieceType::NUM],
+        pinned: [Bitboard; Color::NUM],
+    ) -> Self {
+        Self {
+            checkers,
+            checkables,
+            pinned,
+        }
     }
     fn calculate_pinned(c_bb: &[Bitboard], pt_bb: &[Bitboard]) -> [Bitboard; Color::NUM] {
         let mut bbs = [Bitboard::ZERO, Bitboard::ZERO];
@@ -38,6 +47,42 @@ impl State {
             }
         }
         bbs
+    }
+    fn calculate_checkables(
+        c_bb: &[Bitboard],
+        pt_bb: &[Bitboard],
+        c: Color,
+    ) -> [Bitboard; PieceType::NUM] {
+        if let Some(king) = (c_bb[(c).index()] & pt_bb[PieceType::OU.index()]).pop() {
+            let occ = &pt_bb[PieceType::OCCUPIED.index()];
+            let fu = ATTACK_TABLE.attack(PieceType::FU, king, c, occ);
+            let ky = ATTACK_TABLE.attack(PieceType::KY, king, c, occ);
+            let ke = ATTACK_TABLE.attack(PieceType::KE, king, c, occ);
+            let gi = ATTACK_TABLE.attack(PieceType::GI, king, c, occ);
+            let ka = ATTACK_TABLE.attack(PieceType::KA, king, c, occ);
+            let hi = ATTACK_TABLE.attack(PieceType::HI, king, c, occ);
+            let ki = ATTACK_TABLE.attack(PieceType::KI, king, c, occ);
+            let ou = ATTACK_TABLE.attack(PieceType::OU, king, c, occ);
+            [
+                Bitboard::ZERO, // PieceType::OCCUPIED
+                fu,             // PieceType::FU
+                ky,             // PieceType::KY
+                ke,             // PieceType::KE
+                gi,             // PieceType::GI
+                ka,             // PieceType::KA
+                hi,             // PieceType::HI
+                ki,             // PieceType::KI
+                Bitboard::ZERO, // PieceType::OU
+                ki,             // PieceType::TO
+                ki,             // PieceType::NY
+                ki,             // PieceType::NK
+                ki,             // PieceType::NG
+                ka | ou,        // PieceType::UM
+                hi | ou,        // PieceType::RY
+            ]
+        } else {
+            [Bitboard::ZERO; PieceType::NUM]
+        }
     }
 }
 
@@ -87,7 +132,11 @@ impl Position {
             if let Some(_sq) = (c_bb[(!c).index()] & pt_bb[PieceType::OU.index()]).next() {
                 // TODO
             }
-            State::new(checkers, State::calculate_pinned(&c_bb, &pt_bb))
+            State::new(
+                checkers,
+                State::calculate_checkables(&c_bb, &pt_bb, !c),
+                State::calculate_pinned(&c_bb, &pt_bb),
+            )
         };
         Self {
             board,
@@ -191,12 +240,16 @@ impl Position {
         }
         let p_to = if promotion { p_from.promoted() } else { p_from };
         self.put_piece(to, p_to);
-        let checkers = if let Some(sq) = self.king(!c) {
-            self.attackers_to(c, sq)
-        } else {
-            Bitboard::ZERO
-        };
-        State::new(checkers, State::calculate_pinned(&self.c_bb, &self.pt_bb))
+        // let checkers = if let Some(sq) = self.king(!c) {
+        //     self.attackers_to(c, sq)
+        // } else {
+        //     Bitboard::ZERO
+        // };
+        State::new(
+            self.calculate_checkers(from, to, p_to),
+            State::calculate_checkables(&self.c_bb, &self.pt_bb, c),
+            State::calculate_pinned(&self.c_bb, &self.pt_bb),
+        )
     }
     // 駒打ち
     fn do_drop_move(&mut self, to: Square, p: Piece) -> State {
@@ -213,7 +266,11 @@ impl Position {
         } else {
             Bitboard::ZERO
         };
-        State::new(checkers, State::calculate_pinned(&self.c_bb, &self.pt_bb))
+        State::new(
+            checkers,
+            State::calculate_checkables(&self.c_bb, &self.pt_bb, c),
+            State::calculate_pinned(&self.c_bb, &self.pt_bb),
+        )
     }
     fn state(&self) -> Option<&State> {
         self.states.last()
@@ -251,6 +308,18 @@ impl Position {
             | (ATTACK_TABLE.attack(PieceType::HI, to, opp, &occ) & self.pieces_ps(&[PieceType::HI, PieceType::RY]))
             | (ATTACK_TABLE.attack(PieceType::KI, to, opp, &occ) & self.pieces_ps(&[PieceType::KI, PieceType::TO, PieceType::NY, PieceType::NK, PieceType::NG, PieceType::UM, PieceType::OU]))
         ) & self.pieces_c(c)
+    }
+    fn calculate_checkers(&self, from: Square, to: Square, p: Piece) -> Bitboard {
+        let c = self.side_to_move();
+        if let (Some(state), Some(pt), Some(king)) = (self.state(), p.piece_type(), self.king(!c)) {
+            // 直接王手をかける手
+            if (state.checkables[pt.index()] & to).is_empty().not() {
+                return self.attackers_to(c, king);
+            }
+            // 開き王手をかける手
+            todo!();
+        }
+        Bitboard::ZERO
     }
 }
 
