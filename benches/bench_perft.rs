@@ -2,10 +2,11 @@
 extern crate test;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+mod perft {
+    use shogi_core::PartialPosition;
+    use shogi_usi_parser::FromUsi;
     use test::Bencher;
-    use yasai::{Color, Piece, Position};
+    use yasai::Position;
 
     fn perft(pos: &mut Position, depth: usize) -> usize {
         let mut ret = 0;
@@ -28,7 +29,7 @@ mod tests {
     }
 
     #[bench]
-    fn bench_perft_from_default(b: &mut Bencher) {
+    fn bench_perft_5_from_default(b: &mut Bencher) {
         b.iter(|| {
             let mut pos = Position::default();
             assert_eq!(19_861_490, perft(&mut pos, 5));
@@ -36,23 +37,14 @@ mod tests {
     }
 
     #[bench]
-    fn bench_perft_from_maximum_moves(b: &mut Bencher) {
+    fn bench_perft_3_from_maximum_moves(b: &mut Bencher) {
         b.iter(|| {
-            #[rustfmt::skip]
-            let mut pos = Position::new([
-                Piece::EMP, Piece::WOU, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP,
-                Piece::EMP, Piece::BGI, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP,
-                Piece::EMP, Piece::BGI, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP,
-                Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::BKY,
-                Piece::EMP, Piece::BGI, Piece::BKA, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP,
-                Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::BKY,
-                Piece::EMP, Piece::BOU, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP,
-                Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::BKY,
-                Piece::BHI, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP, Piece::EMP,
-            ], [
-                [ 1, 1, 1, 1, 1, 1, 1],
-                [17, 0, 3, 0, 3, 0, 0],
-            ], Color::Black);
+            let mut pos = Position::new(
+                PartialPosition::from_usi(
+                    "sfen R8/2K1S1SSk/4B4/9/9/9/9/9/1L1L1L3 b RBGSNLP3g3n17p 1",
+                )
+                .expect("failed to parse"),
+            );
             assert_eq!(53_393_368, perft(&mut pos, 3));
         });
     }
