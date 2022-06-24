@@ -6,8 +6,8 @@ use shogi_core::{Color, Hand, Move, Piece, PieceKind, Square};
 /// Represents a state of the game.
 #[derive(Debug, Clone)]
 pub struct Position {
-    pub inner: PartialPosition,
-    pub states: Vec<State>,
+    inner: PartialPosition,
+    states: Vec<State>,
 }
 
 impl Position {
@@ -235,7 +235,7 @@ impl Position {
         self.inner.occupied_bitboard()
     }
     #[inline(always)]
-    pub(crate) fn king_position(&self, c: Color) -> Option<Square> {
+    pub fn king_position(&self, c: Color) -> Option<Square> {
         self.inner.king_position(c)
     }
     #[inline(always)]
@@ -271,7 +271,7 @@ impl Default for Position {
 }
 
 #[derive(Clone, Debug)]
-pub struct PartialPosition {
+struct PartialPosition {
     side: Color,
     ply: u16,
     hands: [Hand; Color::NUM],
@@ -343,7 +343,7 @@ impl From<shogi_core::PartialPosition> for PartialPosition {
 }
 
 #[derive(Debug, Clone)]
-pub struct State {
+struct State {
     keys: (Key, Key),
     captured: Option<Piece>,
     last_moved: Option<Piece>,
