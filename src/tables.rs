@@ -98,8 +98,8 @@ impl LanceAttackTable {
     pub(crate) fn attack(&self, sq: Square, c: Color, occ: &Bitboard) -> Bitboard {
         let mask = self.masks[sq.array_index()][c.array_index()];
         match c {
-            Color::Black => occ.sliding_negative(&mask),
-            Color::White => occ.sliding_positive(&mask),
+            Color::Black => occ.sliding_negative_consecutive(&mask),
+            Color::White => occ.sliding_positive_consecutive(&mask),
         }
     }
 }
@@ -262,7 +262,7 @@ mod tests {
             ];
             for (sq, c, expected) in test_cases {
                 let bb = ATTACK_TABLE.ky.attack(sq, c, &pos.occupied_bitboard());
-                assert_eq!(expected, bb.collect::<Vec<_>>());
+                assert_eq!(expected, bb.into_iter().collect::<Vec<_>>());
             }
         }
         {
@@ -293,7 +293,7 @@ mod tests {
                 let bb = ATTACK_TABLE
                     .ky
                     .attack(sq, Color::Black, &pos.occupied_bitboard());
-                assert_eq!(expected, bb.collect::<Vec<_>>());
+                assert_eq!(expected, bb.into_iter().collect::<Vec<_>>());
             }
         }
         {
@@ -324,7 +324,7 @@ mod tests {
                 let bb = ATTACK_TABLE
                     .ky
                     .attack(sq, Color::White, &pos.occupied_bitboard());
-                assert_eq!(expected, bb.collect::<Vec<_>>());
+                assert_eq!(expected, bb.into_iter().collect::<Vec<_>>());
             }
         }
     }
@@ -340,7 +340,7 @@ mod tests {
                 ];
                 for (sq, expected) in test_cases {
                     let bb = ATTACK_TABLE.ka.attack(sq, &pos.occupied_bitboard());
-                    assert_eq!(expected, bb.collect::<Vec<_>>());
+                    assert_eq!(expected, bb.into_iter().collect::<Vec<_>>());
                 }
             }
             {
@@ -360,7 +360,7 @@ mod tests {
                 ];
                 for (sq, expected) in test_cases {
                     let bb = ATTACK_TABLE.hi.attack(sq, &pos.occupied_bitboard());
-                    assert_eq!(expected, bb.collect::<Vec<_>>());
+                    assert_eq!(expected, bb.into_iter().collect::<Vec<_>>());
                 }
             }
         }

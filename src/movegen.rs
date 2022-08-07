@@ -71,7 +71,7 @@ impl Position {
             if checkers_count > 1 {
                 return;
             }
-            if let Some(ch) = self.checkers().pop() {
+            if let Some(ch) = self.checkers().into_iter().next() {
                 let target_drop = BETWEEN_TABLE[ch.array_index()][king.array_index()];
                 let target_move = target_drop | self.checkers();
                 self.generate_for_fu(av, &target_move);
@@ -90,8 +90,8 @@ impl Position {
     fn generate_for_fu(&self, av: &mut ArrayVec<Move, MAX_LEGAL_MOVES>, target: &Bitboard) {
         let c = self.side_to_move();
         let (to_bb, delta) = [
-            (unsafe { self.piece_bitboard(Piece::B_P).shift_up(1) }, 1),
-            (unsafe { self.piece_bitboard(Piece::W_P).shift_down(1) }, !0),
+            (self.piece_bitboard(Piece::B_P).shr(), 1),
+            (self.piece_bitboard(Piece::W_P).shl(), !0),
         ][c.array_index()];
         for to in to_bb & target {
             let from = unsafe { Square::from_u8_unchecked(to.index().wrapping_add(delta)) };
@@ -301,7 +301,7 @@ impl Position {
                     .vacant_files();
                 // 打ち歩詰めチェック
                 if let Some(sq) = self.king_position(c.flip()) {
-                    if let Some(to) = ATTACK_TABLE.fu.attack(sq, c.flip()).pop() {
+                    if let Some(to) = ATTACK_TABLE.fu.attack(sq, c.flip()).into_iter().next() {
                         if target.contains(to) && self.is_pawn_drop_mate(to) {
                             target &= !Bitboard::single(to);
                         }
@@ -667,8 +667,8 @@ mod tests {
                 false,
             ),
         ];
-        for (pos, sq, expected) in test_cases {
-            assert_eq!(expected, pos.is_pawn_drop_mate(sq));
+        for (i, (pos, sq, expected)) in test_cases.into_iter().enumerate() {
+            assert_eq!(expected, pos.is_pawn_drop_mate(sq), "failed at {i}");
         }
     }
 }
