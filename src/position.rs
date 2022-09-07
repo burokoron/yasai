@@ -217,6 +217,31 @@ impl Position {
         self.inner.ply -= 1;
         self.states.pop();
     }
+    pub fn do_null_move(&mut self) {
+        let c = self.side_to_move();
+        let captured = None;
+        let last_moved = None;
+        let mut keys = self.state().keys;
+        let checkers = Bitboard::empty();
+
+        self.inner.side = c.flip();
+
+        self.inner.ply += 1;
+        keys.0 ^= Key::COLOR;
+        self.states.push(State {
+            keys,
+            captured,
+            last_moved,
+            attack_info: AttackInfo::new(checkers, &self.inner),
+        });
+    }
+    pub fn undo_null_move(&mut self) {
+        let c = self.side_to_move();
+
+        self.inner.side = c.flip();
+        self.inner.ply -= 1;
+        self.states.pop();
+    }
     #[inline(always)]
     pub(crate) fn player_bitboard(&self, c: Color) -> Bitboard {
         self.inner.player_bb[c.array_index()]
@@ -706,5 +731,28 @@ mod tests {
         for (m, expected) in test_cases {
             assert_eq!(expected, pos.is_check_move(m));
         }
+    }
+
+    #[test]
+    fn null_move() {
+        let mut pos = Position::default();
+        let key0 = pos.key();
+        let turn0 = pos.side_to_move();
+        assert_eq!(turn0, Color::Black);
+
+        pos.do_null_move();
+
+        let key1 = pos.key();
+        assert_ne!(key0, key1);
+        let turn1 = pos.side_to_move();
+        assert_eq!(turn1, Color::White);
+
+        pos.undo_null_move();
+
+        let key2 = pos.key();
+        assert_eq!(key0, key2);
+        assert_ne!(key1, key2);
+        let turn2 = pos.side_to_move();
+        assert_eq!(turn2, Color::Black);
     }
 }
