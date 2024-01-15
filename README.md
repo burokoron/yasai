@@ -17,11 +17,10 @@ cargo run --release --example perft 5
 
 #### TODO
 
-- [ ] null move
+- [x] null move
 - [ ] repetition
   - [ ] draw
   - [ ] win
   - [ ] lose
   - [ ] superior
   - [ ] inferior
-- [ ] current position sfen
